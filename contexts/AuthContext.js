@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
   const sendOTP = async (phoneNumber) => {
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/auth/send-otp`, {
+      const response = await fetch(`${apiUrl}/api/auth/send-otp/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phoneNumber }),
@@ -90,7 +90,7 @@ export function AuthProvider({ children }) {
         throw new Error('Phone number missing. Please request a new OTP.');
       }
 
-      const response = await fetch(`${apiUrl}/api/auth/verify-otp`, {
+      const response = await fetch(`${apiUrl}/api/auth/verify-otp/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phoneNumber, otp }),
