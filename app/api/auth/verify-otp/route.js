@@ -70,7 +70,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('Error verifying OTP:', error);
     return NextResponse.json(
-      { error: 'Failed to verify OTP' },
+      { error: error.message || 'Failed to verify OTP' },
       { status: 500 }
     );
   }
