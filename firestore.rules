@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper: Check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper: Check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own profile
+      allow read: if isOwner(userId);
+      // Admins can read all users
+      allow read: if isAdmin();
+      // Users can create their own profile (on signup)
+      allow create: if isOwner(userId) && 
+        request.resource.data.role == 'client';
+      // Users can update their own profile (but not change role)
+      allow update: if isOwner(userId) && 
+        request.resource.data.role == resource.data.role;
+      // Admins can update any user
+      allow update: if isAdmin();
+      // Users can delete their own profile (account deletion)
+      allow delete: if isOwner(userId);
+      // Admins can delete any user
+      allow delete: if isAdmin();
+    }
+    
+    // Leads collection
+    match /leads/{leadId} {
+      // Users can read their own leads
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      // Admins can read all leads
+      allow read: if isAdmin();
+      // Authenticated users can create leads (with their own UID)
+      allow create: if isAuthenticated() && 
+        request.resource.data.uid == request.auth.uid;
+      // Admins can update lead status and notes
+      allow update: if isAdmin();
+      // Admins can delete leads
+      allow delete: if isAdmin();
+    }
+    
+    // Events collection (auto-logged events)
+    match /events/{eventId} {
+      // Users can read their own events
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      // Admins can read all events
+      allow read: if isAdmin();
+      // Authenticated users can create events (with their own UID)
+      allow create: if isAuthenticated() && 
+        request.resource.data.uid == request.auth.uid;
+      // No one can update or delete events
+      allow update, delete: if false;
+    }
+    
+    // Services collection
+    match /services/{serviceId} {
+      // All authenticated users can read services
+      allow read: if isAuthenticated();
+      // Only admins can write services
+      allow write: if isAdmin();
+      
+      // Sub-services subcollection
+      match /subServices/{subServiceId} {
+        allow read: if isAuthenticated();
+        allow write: if isAdmin();
+      }
+    }
+    
+    // Broadcasts collection
+    match /broadcasts/{broadcastId} {
+      // All authenticated users can read broadcasts
+      allow read: if isAuthenticated();
+      // Only admins can create/update/delete broadcasts
+      allow write: if isAdmin();
+    }
+    
+    // App settings (single document)
+    match /settings/{settingId} {
+      // All authenticated users can read settings
+      allow read: if isAuthenticated();
+      // Only admins can write settings
+      allow write: if isAdmin();
+    }
+  }
+}
